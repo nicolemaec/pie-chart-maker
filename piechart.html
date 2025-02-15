@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pie Chart Maker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: white;
+            color: black;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            font-size: 20px;
+        }
+        #unsavedChanges {
+            font-size: 14px;
+            color: red;
+            display: none;
+        }
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 5px;
+            width: 45%;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        canvas {
+            max-width: 400px;
+            max-height: 400px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pie Chart Maker</h1>
+        <input type="text" id="chartTitle" placeholder="Chart Title">
+        <button onclick="createNewChart()">New Pie Chart</button>
+        <button onclick="exportData()">Export Data</button>
+        <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+        <div class="input-row">
+            <input type="text" id="expenseName" placeholder="Expense Name">
+            <input type="number" id="expenseAmount" placeholder="Amount">
+            <button onclick="addExpense()">Add Expense</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Expense Name</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="expenseList"></tbody>
+        </table>
+        <p id="unsavedChanges">Unsaved Changes</p>
+        <button onclick="updateChart()">Update Chart</button>
+        <p id="totalCost">Total: $0.00</p>
+        <canvas id="pieChart"></canvas>
+    </div>
+
+    <script>
+        let expenses = [];
+        let chart;
+
+        function saveData() {
+            localStorage.setItem("expenses", JSON.stringify(expenses));
+            document.getElementById("unsavedChanges").style.display = "none";
+        }
+
+        function addExpense() {
+            let name = document.getElementById("expenseName").value;
+            let amount = parseFloat(document.getElementById("expenseAmount").value);
+            
+            if (name && !isNaN(amount)) {
+                expenses.push({ name, amount });
+                document.getElementById("expenseName").value = "";
+                document.getElementById("expenseAmount").value = "";
+                updateExpenseList();
+                updateChart();
+                document.getElementById("unsavedChanges").style.display = "block";
+            }
+        }
+
+        function createNewChart() {
+            expenses = [];
+            document.getElementById("chartTitle").value = "";
+            updateExpenseList();
+            updateChart();
+        }
+
+        function exportData() {
+            let title = document.getElementById("chartTitle").value || "Untitled_Chart";
+            title = title.replace(/\s+/g, "_");
+            let now = new Date().toISOString().replace(/[:.]/g, "-");
+            let dataStr = JSON.stringify({ title, expenses });
+            let blob = new Blob([dataStr], { type: "application/json" });
+            let a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${title}_${now}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function importData(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+            
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let importedData = JSON.parse(e.target.result);
+                document.getElementById("chartTitle").value = importedData.title;
+                expenses = importedData.expenses;
+                updateExpenseList();
+                updateChart();
+            };
+            reader.readAsText(file);
+        }
+
+        function updateChart() {
+            expenses.forEach((exp, index) => {
+                exp.name = document.querySelector(`#expenseList tr:nth-child(${index + 1}) td input[type='text']`).value;
+                exp.amount = parseFloat(document.querySelector(`#expenseList tr:nth-child(${index + 1}) td input[type='number']`).value);
+            });
+            
+            let totalCost = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            document.getElementById("totalCost").textContent = `Total: $${totalCost.toFixed(2)}`;
+            
+            let ctx = document.getElementById("pieChart").getContext("2d");
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: "pie",
+                data: {
+                    labels: expenses.map(e => `${e.name}: $${e.amount.toFixed(2)}`),
+                    datasets: [{
+                        data: expenses.map(e => e.amount),
+                        backgroundColor: expenses.map(() => `hsl(${Math.random() * 360}, 70%, 60%)`),
+                    }]
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: document.getElementById("chartTitle").value || "Pie Chart",
+                            font: { size: 16 }
+                        }
+                    }
+                }
+            });
+            saveData();
+        }
+
+        function updateExpenseList() {
+            let list = document.getElementById("expenseList");
+            list.innerHTML = "";
+            expenses.forEach((exp, index) => {
+                let row = document.createElement("tr");
+                row.innerHTML = `
+                    <td><input type="text" value="${exp.name}"></td>
+                    <td><input type="number" value="${exp.amount}"></td>
+                    <td><button onclick="removeExpense(${index})">Delete</button></td>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        updateExpenseList();
+        updateChart();
+    </script>
+</body>
+</html>
