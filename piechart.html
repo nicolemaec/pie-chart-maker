@@ -39,8 +39,8 @@
         input {
             padding: 4px;
 	width: auto; /* Allow dynamic width */ 
-	min-width: 50px; /* Prevent shrinking too much */
-	max-width: 100px; /* Prevent growing too large */
+	min-width: 25px; /* Prevent shrinking too much */
+	max-width: 50px; /* Prevent growing too large */
             border: 1px solid #fde5c2;
             background-color: #fde5c2;
             border-radius: 5px;
@@ -96,14 +96,14 @@
 </head>
 <body>
     <div class="container">
-        <h1>Pie Chart Maker v2</h1>
+        <h1>Pie Chart Maker v3</h1>
         <input type="text" id="chartTitle" placeholder="Chart Title">
         <button onclick="createNewChart()">New Pie Chart</button>
         <button onclick="exportData()">Export Data</button>
         <input type="file" id="importFile" accept=".json" onchange="importData(event)">
         <div class="input-row"><p>
             <input type="text" id="expenseName" placeholder="Expense Name">
-            <input type="number" id="expenseAmount" placeholder="Amount">
+            <input type="number" id="expenseAmount" placeholder="Amount" inputmode="decimal">
             <button onclick="addExpense()">Add Expense</button></p>
         </div>
         <table>
