@@ -115,33 +115,34 @@
             updateChart();
         }
 
-        function exportData() {
-            let title = document.getElementById("chartTitle").value || "Untitled_Chart";
-            title = title.replace(/\s+/g, "_");
-            let now = new Date().toISOString().replace(/[:.]/g, "-");
-            let dataStr = JSON.stringify({ title, expenses });
-            let blob = new Blob([dataStr], { type: "application/json" });
-            let a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${title}_${now}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        function updateExpenseList() {
+            let list = document.getElementById("expenseList");
+            list.innerHTML = "";
+            expenses.forEach((exp, index) => {
+                let row = document.createElement("tr");
+                row.innerHTML = `
+                    <td><input type="text" value="${exp.name}"></td>
+                    <td><input type="number" value="${exp.amount}"></td>
+                    <td>
+                        <button onclick="adjustAmount(${index}, 1)">+</button>
+                        <button onclick="adjustAmount(${index}, -1)">-</button>
+                        <input type="number" id="adjustment-${index}" placeholder="Adjust" style="width: 60px;">
+                    </td>
+                    <td><button onclick="removeExpense(${index})">Delete</button></td>
+                `;
+                list.appendChild(row);
+            });
         }
 
-        function importData(event) {
-            let file = event.target.files[0];
-            if (!file) return;
-            
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                let importedData = JSON.parse(e.target.result);
-                document.getElementById("chartTitle").value = importedData.title;
-                expenses = importedData.expenses;
+        function adjustAmount(index, direction) {
+            let adjustmentInput = document.getElementById(`adjustment-${index}`);
+            let adjustmentValue = parseFloat(adjustmentInput.value);
+            if (!isNaN(adjustmentValue)) {
+                expenses[index].amount += adjustmentValue * direction;
                 updateExpenseList();
                 updateChart();
-            };
-            reader.readAsText(file);
+                document.getElementById("unsavedChanges").style.display = "block";
+            }
         }
 
         function updateChart() {
@@ -163,32 +164,9 @@
                         data: expenses.map(e => e.amount),
                         backgroundColor: expenses.map(() => `hsl(${Math.random() * 360}, 70%, 60%)`),
                     }]
-                },
-                options: {
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: document.getElementById("chartTitle").value || "Pie Chart",
-                            font: { size: 16 }
-                        }
-                    }
                 }
             });
             saveData();
-        }
-
-        function updateExpenseList() {
-            let list = document.getElementById("expenseList");
-            list.innerHTML = "";
-            expenses.forEach((exp, index) => {
-                let row = document.createElement("tr");
-                row.innerHTML = `
-                    <td><input type="text" value="${exp.name}"></td>
-                    <td><input type="number" value="${exp.amount}"></td>
-                    <td><button onclick="removeExpense(${index})">Delete</button></td>
-                `;
-                list.appendChild(row);
-            });
         }
 
         updateExpenseList();
