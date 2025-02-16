@@ -38,7 +38,9 @@
         }
         input {
             padding: 4px;
-            width: 30%;
+	width: auto; /* Allow dynamic width */ 
+	min-width: 100px; /* Prevent shrinking too much */
+	max-width: 250px; /* Prevent growing too large */
             border: 1px solid #fde5c2;
             background-color: #fde5c2;
             border-radius: 5px;
@@ -99,109 +101,147 @@
         <button onclick="createNewChart()">New Pie Chart</button>
         <button onclick="exportData()">Export Data</button>
         <input type="file" id="importFile" accept=".json" onchange="importData(event)">
-        <div class="input-row">
+        <div class="input-row"><p>
             <input type="text" id="expenseName" placeholder="Expense Name">
             <input type="number" id="expenseAmount" placeholder="Amount">
-            <button onclick="addExpense()">Add Expense</button>
+            <button onclick="addExpense()">Add Expense</button></p>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th>Expense Name</th>
-                    <th>Amount</th>
-                    <th>Adjust</th>
-                    <th>Actions</th>
+                    <th><center>Expense Name</th>
+                    <th><center>Amount</th>
+                    <th><center>Adjust</th>
+                    <th><center>Actions</th>
                 </tr>
             </thead>
             <tbody id="expenseList"></tbody>
         </table>
         <p id="unsavedChanges">Unsaved Changes</p>
         <button onclick="updateChart()">Update Chart</button>
+<p id="chartTitleDisplay"></p>
         <p id="totalCost">Total: $0.00</p>
         <canvas id="pieChart"></canvas>
     </div>
 
-    <script>
-        let expenses = [];
-        let chart;
+ <script>
+let expenses = [];
+let chart;
 
-        function saveData() {
-            localStorage.setItem("expenses", JSON.stringify(expenses));
-            document.getElementById("unsavedChanges").style.display = "none";
-        }
+function updateTotal() {
+    let total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    document.getElementById("totalCost").textContent = `Total: $${total.toFixed(2)}`;
+}
 
-        function addExpense() {
-            let name = document.getElementById("expenseName").value;
-            let amount = parseFloat(document.getElementById("expenseAmount").value);
-            
-            if (name && !isNaN(amount)) {
-                expenses.push({ name, amount });
-                document.getElementById("expenseName").value = "";
-                document.getElementById("expenseAmount").value = "";
-                updateExpenseList();
-                updateChart();
-                document.getElementById("unsavedChanges").style.display = "block";
-            }
-        }
+function updateChartTitle() {
+    let title = document.getElementById("chartTitle").value;
+    document.getElementById("chartTitleDisplay").textContent = title;
+}
 
-        function updateExpenseList() {
-            let list = document.getElementById("expenseList");
-            list.innerHTML = "";
-            expenses.forEach((exp, index) => {
-                let row = document.createElement("tr");
-                row.innerHTML = `
-                    <td><input type="text" value="${exp.name}" onchange="editExpense(${index}, 'name', this.value)"></td>
-                    <td><input type="number" value="${exp.amount}" onchange="editExpense(${index}, 'amount', this.value)"></td>
-                    <td>
-                        <input type="number" id="adjustment-${index}" placeholder="Adjust" style="width: 50px; font-size: 12px;">
-                        <button onclick="adjustAmount(${index}, 1)">+</button>
-                        <button onclick="adjustAmount(${index}, -1)">-</button>
-                    </td>
-                    <td><button class="delete-button" onclick="removeExpense(${index})"><b>X</b></button></td>
-                `;
-                list.appendChild(row);
-            });
-        }
-
-        function editExpense(index, field, value) {
-            if (field === 'amount') {
-                expenses[index][field] = parseFloat(value) || 0;
-            } else {
-                expenses[index][field] = value;
-            }
-            document.getElementById("unsavedChanges").style.display = "block";
-        }
-
-        function adjustAmount(index, direction) {
-            let adjustmentInput = document.getElementById(`adjustment-${index}`);
-            let adjustmentValue = parseFloat(adjustmentInput.value);
-            if (!isNaN(adjustmentValue)) {
-                expenses[index].amount += adjustmentValue * direction;
-                updateExpenseList();
-                updateChart();
-                document.getElementById("unsavedChanges").style.display = "block";
-            }
-        }
-
-        function updateChart() {
-            let ctx = document.getElementById("pieChart").getContext("2d");
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: "pie",
-                data: {
-                    labels: expenses.map(e => `${e.name}: $${e.amount.toFixed(2)}`),
-                    datasets: [{
-                        data: expenses.map(e => e.amount),
-                        backgroundColor: expenses.map(() => `hsl(${Math.random() * 360}, 70%, 60%)`),
-                    }]
-                }
-
-            });
-            saveData();
-        }
-
+function addExpense() {
+    let name = document.getElementById("expenseName").value;
+    let amount = parseFloat(document.getElementById("expenseAmount").value);
+    if (name && !isNaN(amount)) {
+        expenses.push({ name, amount });
+        document.getElementById("expenseName").value = "";
+        document.getElementById("expenseAmount").value = "";
         updateExpenseList();
         updateChart();
-    </script>
+        updateTotal();
+        updateChartTitle();  // ✅ Ensures title updates when a new expense is added
+    }
+}
+
+function adjustAmount(index, direction) {
+    let adjustmentInput = document.getElementById(`adjustment-${index}`);
+    let adjustmentValue = parseFloat(adjustmentInput.value);
+    if (!isNaN(adjustmentValue)) {
+        expenses[index].amount += adjustmentValue * direction;
+        updateExpenseList();
+        updateChart();
+        updateTotal();
+    }
+}
+
+function exportData() {
+    let title = document.getElementById("chartTitle").value || "Untitled_Chart";
+    title = title.replace(/\s+/g, "_");
+    let now = new Date().toISOString().replace(/[:.]/g, "-");
+    let dataStr = JSON.stringify({ title, expenses });
+    let blob = new Blob([dataStr], { type: "application/json" });
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${title}_${now}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function importData(event) {
+    let file = event.target.files[0];
+    if (!file) return;
+    
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let importedData = JSON.parse(e.target.result);
+        document.getElementById("chartTitle").value = importedData.title;
+        expenses = importedData.expenses;
+        updateExpenseList();
+        updateChart();
+        updateChartTitle();  // ✅ Ensures title updates when importing a file
+    };
+    reader.readAsText(file);
+}
+
+function updateExpenseList() {
+    let list = document.getElementById("expenseList");
+    list.innerHTML = "";
+    expenses.forEach((exp, index) => {
+        let row = document.createElement("tr");
+        row.innerHTML = `
+            <td><input type="text" value="${exp.name}" onchange="expenses[${index}].name = this.value; updateChart(); updateTotal();"></td>
+            <td><input type="number" value="${exp.amount}" onchange="expenses[${index}].amount = parseFloat(this.value); updateChart(); updateTotal();"></td>
+            <td><center>
+                <input type="number" id="adjustment-${index}" placeholder="Adjust" style="width: 50px; font-size: 12px;">
+                <br><button onclick="adjustAmount(${index}, 1)">+</button>
+                <button onclick="adjustAmount(${index}, -1)">-</button></center>
+            </td>
+            <td><button class="delete-button" onclick="expenses.splice(${index}, 1); updateExpenseList(); updateChart(); updateTotal();"><b>X</b></button></td>
+        `;
+        list.appendChild(row);
+    });
+    updateTotal();
+}
+
+function updateChart() {
+    let ctx = document.getElementById("pieChart").getContext("2d");
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: expenses.map(e => `${e.name}: $${e.amount.toFixed(2)}`),
+            datasets: [{
+                data: expenses.map(e => e.amount),
+                backgroundColor: expenses.map(() => `hsl(${Math.random() * 360}, 70%, 60%)`),
+            }]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: document.getElementById("chartTitle").value || "Pie Chart",
+                    font: { size: 14 }
+                }
+            }
+        }
+    });
+
+    updateChartTitle();  // ✅ Ensures title updates whenever chart updates
+}
+
+updateExpenseList();
+updateChart();  // ✅ This initializes the chart at the start
+
+</script>
 </body>
 </html>
