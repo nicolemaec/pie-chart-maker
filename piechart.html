@@ -96,7 +96,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Pie Chart Maker v4</h1>
+        <h1>Pie Chart Maker</h1>
         <input type="text" id="chartTitle" placeholder="Chart Title">
         <button onclick="createNewChart()">New Pie Chart</button>
         <button onclick="exportData()">Export Data</button>
@@ -137,16 +137,42 @@ function updateChartTitle() {
     document.getElementById("chartTitleDisplay").textContent = title;
 }
 
-	 function createNewChart() {
+function createNewChart() {
     expenses = [];  // Clear expenses array
     document.getElementById("chartTitle").value = ""; // Clear title input
     document.getElementById("expenseList").innerHTML = ""; // Clear table rows
     document.getElementById("chartTitleDisplay").textContent = ""; // Clear displayed title
     document.getElementById("totalCost").textContent = "Total: $0.00"; // Reset total cost
 
-    if (chart) chart.destroy(); // Destroy existing chart
-    chart = null; // Reset chart reference
+    // Destroy and reset the pie chart
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+
+    // Reinitialize the chart with empty data
+    let ctx = document.getElementById("pieChart").getContext("2d");
+    chart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [],
+            }]
+        },
+        options: {
+            plugins: {
+                title: {
+                    display: true,
+                    text: "Pie Chart",  // Default text when cleared
+                    font: { size: 14 }
+                }
+            }
+        }
+    });
 }
+
 
 
 function addExpense() {
