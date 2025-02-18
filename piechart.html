@@ -96,7 +96,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Pie Chart Maker v2</h1>
+        <h1>Pie Chart Maker</h1>
         <input type="text" id="chartTitle" placeholder="Chart Title">
         <button onclick="createNewChart()">New Pie Chart</button>
         <button onclick="exportData()">Export Data</button>
@@ -236,9 +236,9 @@ function updateExpenseList() {
         let row = document.createElement("tr");
         row.innerHTML = `
             <td><input type="text" value="${exp.name}" onchange="expenses[${index}].name = this.value; updateChart(); updateTotal();"></td>
-            <td><input type="number" value="${exp.amount}" onchange="expenses[${index}].amount = parseFloat(this.value); updateChart(); updateTotal();"></td>
+            <td><input type="number" value="${exp.amount}" onchange="expenses[${index}].amount = parseFloat(this.value); updateChart(); updateTotal();" inputmode="decimal"></td>
             <td><center>
-                <input type="number" id="adjustment-${index}" placeholder="Adjust" style="width: 50px; font-size: 12px;">
+                <input type="number" id="adjustment-${index}" placeholder="Adjust" style="width: 50px; font-size: 12px;" inputmode="decimal">
                 <br><button onclick="adjustAmount(${index}, 1)">+</button>
                 <button onclick="adjustAmount(${index}, -1)">-</button></center>
             </td>
