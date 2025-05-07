@@ -105,6 +105,12 @@
             <input type="text" id="expenseName" placeholder="Expense Name">
             <input type="number" id="expenseAmount" placeholder="Amount" inputmode="decimal">
             <button onclick="addExpense()">Add Expense</button></p>
+<button onclick="toggleRawData()">Import Raw Data</button>
+<div id="rawDataContainer" style="display: none; margin-top: 10px;">
+    <textarea id="rawDataInput" placeholder="Paste Excel data here" rows="5" style="width: 100%; font-size: 12px;"></textarea><br>
+    <button onclick="importRawData()">Add Data</button>
+</div>
+
         </div>
         <table>
             <thead>
@@ -228,6 +234,39 @@ function importData(event) {
     };
     reader.readAsText(file);
 }
+function toggleRawData() {
+    const container = document.getElementById("rawDataContainer");
+    container.style.display = container.style.display === "none" ? "block" : "none";
+}
+
+function importRawData() {
+    const rawText = document.getElementById("rawDataInput").value.trim();
+    const rows = rawText.split("\n");
+
+    let importedCount = 0;
+
+    rows.forEach(row => {
+        const [name, amountStr] = row.split("\t");
+        const amount = parseFloat(amountStr);
+
+        if (name && !isNaN(amount)) {
+            expenses.push({ name: name.trim(), amount });
+            importedCount++;
+        }
+    });
+
+    if (importedCount > 0) {
+        updateExpenseList();
+        updateChart();
+        updateTotal();
+        updateChartTitle();
+        document.getElementById("rawDataInput").value = ""; // Clear textarea
+        alert(`✅ Imported ${importedCount} item(s) from Excel!`);
+    } else {
+        alert("⚠️ No valid rows found. Make sure to paste two columns: name and amount.");
+    }
+}
+
 
 function updateExpenseList() {
     let list = document.getElementById("expenseList");
